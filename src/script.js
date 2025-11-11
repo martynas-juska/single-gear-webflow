@@ -21,7 +21,8 @@ if (container) {
  * Scene
  */
 const scene = new THREE.Scene()
-// scene.background = new THREE.Color('#0a1628')
+// Transparent background — Webflow background will show through
+// (Do not set a scene.background color)
 
 /**
  * Lights — cinematic, soft
@@ -51,7 +52,7 @@ let gear = null
 let modelLoaded = false
 
 gltfLoader.load(
-  './models/gear/Gear13.gltf',
+  '/models/gear/Gear13.gltf', // ✅ absolute path (works with static/)
   (gltf) => {
     gear = gltf.scene
     gear.traverse((child) => {
@@ -110,6 +111,7 @@ controls.enabled = false // GSAP will handle animations
 const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: true,
+  alpha: true, // ✅ transparent background for Webflow
   powerPreference: 'high-performance'
 })
 renderer.shadowMap.enabled = true
@@ -158,7 +160,7 @@ let animationId
 
 const tick = () => {
   animationId = requestAnimationFrame(tick)
-  if (!isInView || !modelLoaded) return // quietly wait until model is loaded
+  if (!isInView || !modelLoaded) return
 
   const elapsedTime = clock.getElapsedTime()
   const deltaTime = elapsedTime - previousTime
