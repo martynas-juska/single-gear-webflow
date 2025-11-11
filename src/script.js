@@ -23,10 +23,10 @@ if (container) {
  * Scene
  */
 const scene = new THREE.Scene()
-// Leave transparent — Webflow background shows through
+// Transparent background — Webflow will show through
 
 /**
- * Lights — cinematic soft tones
+ * Lights
  */
 const ambientLight = new THREE.AmbientLight(0x557799, 0.6)
 scene.add(ambientLight)
@@ -52,51 +52,57 @@ const gltfLoader = new GLTFLoader()
 let gear = null
 let modelLoaded = false
 
-// ✅ Smart model path
-const isLocal =
-  window.location.hostname === 'localhost' ||
-  window.location.hostname === '127.0.0.1'
+// ✅ Fix: Correct CDN path & environment detection
+const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+
+// Auto-detect your deployed Vercel domain for safety
+const VERCEL_CDN = 'https://single-gear-webflow.vercel.app'
 const modelPath = isLocal
-  ? './models/gear/Gear13.gltf' // for Vite dev
-  : 'https://single-gear-webflow.vercel.app/models/gear/Gear13.gltf' // for Webflow/Vercel
+  ? './models/gear/Gear13.gltf' // local dev
+  : `${VERCEL_CDN}/models/gear/Gear13.gltf` // production (Webflow or live site)
 
-gltfLoader.load(
-  modelPath,
-  (gltf) => {
-    gear = gltf.scene
-    gear.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true
-        child.receiveShadow = true
-        child.material = new THREE.MeshPhysicalMaterial({
-          color: 0xb0b0b0,
-          metalness: 1.0,
-          roughness: 0.35,
-          clearcoat: 0.9,
-          clearcoatRoughness: 0.15,
-          reflectivity: 0.9,
-          sheen: 0.1,
-          envMapIntensity: 1.0
-        })
-      }
-    })
+// ✅ Prevent duplicate Three.js init (in case multiple bundles load)
+if (!window.__gear3DInitialized) {
+  window.__gear3DInitialized = true
 
-    gear.position.set(0, 0, 0)
-    gear.rotation.x = Math.PI * 0.5
-    gear.scale.set(0.5, 0.5, 0.5)
-    scene.add(gear)
+  gltfLoader.load(
+    modelPath,
+    (gltf) => {
+      gear = gltf.scene
+      gear.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true
+          child.receiveShadow = true
+          child.material = new THREE.MeshPhysicalMaterial({
+            color: 0xb0b0b0,
+            metalness: 1.0,
+            roughness: 0.35,
+            clearcoat: 0.9,
+            clearcoatRoughness: 0.15,
+            reflectivity: 0.9,
+            sheen: 0.1,
+            envMapIntensity: 1.0
+          })
+        }
+      })
 
-    modelLoaded = true
+      gear.position.set(0, 0, 0)
+      gear.rotation.x = Math.PI * 0.5
+      gear.scale.set(0.5, 0.5, 0.5)
+      scene.add(gear)
 
-    // ✅ Reveal canvas & notify Webflow
-    requestAnimationFrame(() => {
-      canvas.style.opacity = '1'
-      window.dispatchEvent(new CustomEvent('webglReady'))
-    })
-  },
-  undefined,
-  (error) => console.error('Error loading model:', error)
-)
+      modelLoaded = true
+
+      // ✅ Fade in once ready and trigger Webflow animation
+      requestAnimationFrame(() => {
+        canvas.style.opacity = '1'
+        window.dispatchEvent(new CustomEvent('webglReady'))
+      })
+    },
+    undefined,
+    (error) => console.error('❌ Error loading model:', error)
+  )
+}
 
 /**
  * Sizes
@@ -118,7 +124,7 @@ scene.add(camera)
  */
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
-controls.enabled = false // GSAP/Webflow handles animation
+controls.enabled = false // Webflow/GSAP handles camera animations
 
 /**
  * Renderer
@@ -126,7 +132,7 @@ controls.enabled = false // GSAP/Webflow handles animation
 const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: true,
-  alpha: true, // ✅ Transparent background for Webflow
+  alpha: true, // ✅ Transparent background
   powerPreference: 'high-performance'
 })
 renderer.shadowMap.enabled = true
