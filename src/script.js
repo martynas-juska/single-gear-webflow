@@ -11,6 +11,8 @@ let canvas
 if (container) {
   canvas = document.createElement('canvas')
   canvas.classList.add('webgl')
+  canvas.style.opacity = '0' // hidden until loaded
+  canvas.style.transition = 'opacity 0.8s ease'
   container.appendChild(canvas)
 } else {
   canvas = document.querySelector('canvas.webgl')
@@ -21,11 +23,10 @@ if (container) {
  * Scene
  */
 const scene = new THREE.Scene()
-// Transparent background — Webflow background will show through
-// (Do not set a scene.background color)
+// Leave transparent — Webflow background shows through
 
 /**
- * Lights — cinematic, soft
+ * Lights — cinematic soft tones
  */
 const ambientLight = new THREE.AmbientLight(0x557799, 0.6)
 scene.add(ambientLight)
@@ -51,8 +52,16 @@ const gltfLoader = new GLTFLoader()
 let gear = null
 let modelLoaded = false
 
+// ✅ Smart model path
+const isLocal =
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1'
+const modelPath = isLocal
+  ? './models/gear/Gear13.gltf' // for Vite dev
+  : 'https://single-gear-webflow.vercel.app/models/gear/Gear13.gltf' // for Webflow/Vercel
+
 gltfLoader.load(
-  '/models/gear/Gear13.gltf', // ✅ absolute path (works with static/)
+  modelPath,
   (gltf) => {
     gear = gltf.scene
     gear.traverse((child) => {
@@ -78,6 +87,12 @@ gltfLoader.load(
     scene.add(gear)
 
     modelLoaded = true
+
+    // ✅ Reveal canvas & notify Webflow
+    requestAnimationFrame(() => {
+      canvas.style.opacity = '1'
+      window.dispatchEvent(new CustomEvent('webglReady'))
+    })
   },
   undefined,
   (error) => console.error('Error loading model:', error)
@@ -103,7 +118,7 @@ scene.add(camera)
  */
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
-controls.enabled = false // GSAP will handle animations
+controls.enabled = false // GSAP/Webflow handles animation
 
 /**
  * Renderer
@@ -111,7 +126,7 @@ controls.enabled = false // GSAP will handle animations
 const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: true,
-  alpha: true, // ✅ transparent background for Webflow
+  alpha: true, // ✅ Transparent background for Webflow
   powerPreference: 'high-performance'
 })
 renderer.shadowMap.enabled = true
