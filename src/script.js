@@ -3,228 +3,147 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 /**
- * Prevent multiple Three.js initializations
+ * Prevent multiple initializations
  */
-if (window.__gear3DInitialized) {
-  console.warn('⚠️ Gear 3D already initialized — skipping duplicate setup.')
-} else {
+if (!window.__gear3DInitialized) {
   window.__gear3DInitialized = true
 
   /**
-   * Detect environment
+   * Get canvas from Webflow or local DOM
    */
-  let container = document.getElementById('single-gear')
-  let canvas
+  const canvas = document.getElementById('webgl-canvas') || document.querySelector('canvas.webgl')
+  const container = canvas?.parentElement || document.body
 
-  if (container) {
-    canvas = document.createElement('canvas')
-    canvas.classList.add('webgl')
-    canvas.style.opacity = '0'
-    canvas.style.transition = 'opacity 0.8s ease'
-    canvas.style.width = '100%'
-    canvas.style.height = '100%'
-    container.appendChild(canvas)
+  if (!canvas) {
+    console.error('❌ Canvas element with id="webgl-canvas" not found.')
   } else {
-    canvas = document.querySelector('canvas.webgl')
-    container = document.body
-  }
+    /**
+     * Scene
+     */
+    const scene = new THREE.Scene()
 
-  /**
-   * Scene — transparent background to blend with Webflow
-   */
-  const scene = new THREE.Scene()
+    /**
+     * Lights
+     */
+    const ambient = new THREE.AmbientLight(0x557799, 0.6)
+    scene.add(ambient)
 
-  /**
-   * Lights — cinematic mix of warm + cool tones
-   */
-  const ambientLight = new THREE.AmbientLight(0x557799, 0.6)
-  scene.add(ambientLight)
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2)
+    keyLight.position.set(4, 4, 2)
+    scene.add(keyLight)
 
-  const keyLight = new THREE.DirectionalLight(0xffffff, 2.0)
-  keyLight.position.set(4, 4, 2)
-  keyLight.castShadow = true
-  keyLight.shadow.mapSize.set(1024, 1024)
-  scene.add(keyLight)
+    const blueLight = new THREE.PointLight(0x5ac8fa, 3, 10)
+    blueLight.position.set(-3, 1.5, -2)
+    scene.add(blueLight)
 
-  const blueLight = new THREE.PointLight(0x5ac8fa, 3, 10)
-  blueLight.position.set(-3, 1.5, -2)
-  scene.add(blueLight)
+    const fillLight = new THREE.PointLight(0x99ccff, 1.0, 8)
+    fillLight.position.set(0, -1, 3)
+    scene.add(fillLight)
 
-  const fillLight = new THREE.PointLight(0x99ccff, 1.0, 8)
-  fillLight.position.set(0, -1, 3)
-  scene.add(fillLight)
+    /**
+     * Model Loader
+     */
+    const loader = new GLTFLoader()
+    let gear = null
 
-  /**
-   * GLTF Loader — texture-free metallic look
-   */
-  const gltfLoader = new GLTFLoader()
-  let gear = null
-  let modelLoaded = false
+    const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    const CDN = 'https://single-gear-webflow.vercel.app'
+    const modelPath = isLocal
+      ? './models/gear/Gear13.gltf'
+      : `${CDN}/models/gear/Gear13.gltf`
 
-  const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-  const VERCEL_CDN = 'https://single-gear-webflow.vercel.app'
-  const modelPath = isLocal
-    ? './models/gear/Gear13.gltf'
-    : `${VERCEL_CDN}/models/gear/Gear13.gltf`
+    loader.load(
+      modelPath,
+      (gltf) => {
+        gear = gltf.scene
+        gear.traverse((c) => {
+          if (c.isMesh) {
+            c.material = new THREE.MeshPhysicalMaterial({
+              color: 0xb0b0b0,
+              metalness: 1,
+              roughness: 0.35,
+              clearcoat: 0.9,
+              clearcoatRoughness: 0.15
+            })
+          }
+        })
 
-  gltfLoader.load(
-    modelPath,
-    (gltf) => {
-      gear = gltf.scene
-      gear.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = true
-          child.receiveShadow = true
-          child.material = new THREE.MeshPhysicalMaterial({
-            color: 0xb0b0b0,
-            metalness: 1.0,
-            roughness: 0.35,
-            clearcoat: 0.9,
-            clearcoatRoughness: 0.15,
-            reflectivity: 0.9,
-            sheen: 0.1,
-            envMapIntensity: 1.0
-          })
-        }
-      })
+        gear.rotation.x = Math.PI * 0.5
+        gear.scale.set(1, 1, 1)
+        scene.add(gear)
 
-      // Larger model for small divs
-      gear.position.set(0, 0, 0)
-      gear.rotation.x = Math.PI * 0.5
-      gear.scale.set(1.2, 1.2, 1.2)
-      scene.add(gear)
-      modelLoaded = true
-
-      // Fit to container after Webflow layout settles
-      setTimeout(() => {
-        const width = container.clientWidth
-        const height = container.clientHeight
-        camera.aspect = width / height
-        camera.updateProjectionMatrix()
-        renderer.setSize(width, height)
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-      }, 600)
-
-      // Fade in and trigger Webflow event
-      requestAnimationFrame(() => {
-        canvas.style.opacity = '1'
+        // Fire Webflow-ready event
         window.dispatchEvent(new CustomEvent('webglReady'))
-      })
-    },
-    undefined,
-    (error) => console.error('❌ Error loading model:', error)
-  )
+      },
+      undefined,
+      (err) => console.error('❌ Model load error:', err)
+    )
 
-  /**
-   * Camera — positioned closer for Webflow div
-   */
-  const sizes = {
-    width: container.clientWidth || window.innerWidth,
-    height: container.clientHeight || window.innerHeight
-  }
+    /**
+     * Camera
+     */
+    const sizes = {
+      width: container.clientWidth || window.innerWidth,
+      height: container.clientHeight || window.innerHeight
+    }
 
-  const camera = new THREE.PerspectiveCamera(60, sizes.width / sizes.height, 0.1, 100)
-  camera.position.set(0.8, 0.8, 1.2) // closer to fill container
-  scene.add(camera)
+    const camera = new THREE.PerspectiveCamera(60, sizes.width / sizes.height, 0.1, 100)
 
-  /**
-   * Controls — rotation only
-   */
-  const controls = new OrbitControls(camera, canvas)
-  controls.enableDamping = true
-  controls.enableZoom = false
-  controls.enableRotate = true
-  controls.target.set(0, 0, 0)
+    // 👇 Adjust camera distance depending on environment
+    if (isLocal) {
+      // Local (fullscreen dev mode)
+      camera.position.set(3, 3, 3)
+    } else {
+      // Webflow (small section)
+      camera.position.set(1.2, 1.2, 1.2)
+    }
 
-  /**
-   * Renderer
-   */
-  const renderer = new THREE.WebGLRenderer({
-    canvas,
-    antialias: true,
-    alpha: true,
-    powerPreference: 'high-performance'
-  })
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap
-  renderer.outputEncoding = THREE.sRGBEncoding
-  renderer.setSize(sizes.width, sizes.height)
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    scene.add(camera)
 
-  /**
-   * Resize handling
-   */
-  if (container !== document.body) {
-    const resizeObserver = new ResizeObserver(() => {
-      const width = container.clientWidth
-      const height = container.clientHeight
+    /**
+     * Controls
+     */
+    const controls = new OrbitControls(camera, canvas)
+    controls.enableDamping = true
+    controls.enableZoom = false
+    controls.target.set(0, 0, 0)
+
+    /**
+     * Renderer
+     */
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true
+    })
+    renderer.setSize(sizes.width, sizes.height)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.outputEncoding = THREE.sRGBEncoding
+
+    /**
+     * Resize Handling
+     */
+    const resize = () => {
+      const width = container.clientWidth || window.innerWidth
+      const height = container.clientHeight || window.innerHeight
       camera.aspect = width / height
       camera.updateProjectionMatrix()
       renderer.setSize(width, height)
-    })
-    resizeObserver.observe(container)
-  } else {
-    window.addEventListener('resize', () => {
-      sizes.width = window.innerWidth
-      sizes.height = window.innerHeight
-      camera.aspect = sizes.width / sizes.height
-      camera.updateProjectionMatrix()
-      renderer.setSize(sizes.width, sizes.height)
-    })
+    }
+    window.addEventListener('resize', resize)
+
+    /**
+     * Animation Loop
+     */
+    const clock = new THREE.Clock()
+    const animate = () => {
+      const elapsed = clock.getElapsedTime()
+      if (gear) gear.rotation.z = elapsed * 0.2
+
+      controls.update()
+      renderer.render(scene, camera)
+      requestAnimationFrame(animate)
+    }
+    animate()
   }
-
-  /**
-   * Visibility optimization
-   */
-  let isInView = true
-  const observer = new IntersectionObserver((entries) => {
-    isInView = entries[0].isIntersecting
-  }, { threshold: 0.1 })
-  observer.observe(container)
-
-  /**
-   * Animation loop
-   */
-  const clock = new THREE.Clock()
-  let previousTime = 0
-  let animationId
-
-  const tick = () => {
-    animationId = requestAnimationFrame(tick)
-    if (!isInView || !modelLoaded) return
-
-    const elapsedTime = clock.getElapsedTime()
-    const deltaTime = elapsedTime - previousTime
-    previousTime = elapsedTime
-
-    keyLight.position.x = Math.sin(elapsedTime * 0.4) * 4
-    blueLight.position.y = Math.sin(elapsedTime * 0.8) * 2 + 1.5
-    fillLight.position.z = Math.cos(elapsedTime * 0.5) * 3
-
-    if (gear) gear.rotation.z += deltaTime * 0.1
-
-    controls.update()
-    renderer.render(scene, camera)
-  }
-  tick()
-
-  /**
-   * Cleanup
-   */
-  window.addEventListener('beforeunload', () => {
-    cancelAnimationFrame(animationId)
-    observer.disconnect()
-    controls.dispose()
-    renderer.dispose()
-    scene.traverse((child) => {
-      if (child.isMesh) {
-        child.geometry.dispose()
-        if (Array.isArray(child.material)) {
-          child.material.forEach((m) => m.dispose())
-        } else {
-          child.material.dispose()
-        }
-      }
-    })
-  })
 }
