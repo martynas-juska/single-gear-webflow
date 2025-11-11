@@ -21,6 +21,8 @@ if (window.__gear3DInitialized) {
     canvas.classList.add('webgl')
     canvas.style.opacity = '0'
     canvas.style.transition = 'opacity 0.8s ease'
+    canvas.style.width = '100%'
+    canvas.style.height = '100%'
     container.appendChild(canvas)
   } else {
     canvas = document.querySelector('canvas.webgl')
@@ -86,15 +88,24 @@ if (window.__gear3DInitialized) {
         }
       })
 
-      // Scale fix: slightly larger
+      // Larger model for small divs
       gear.position.set(0, 0, 0)
       gear.rotation.x = Math.PI * 0.5
-      gear.scale.set(0.8, 0.8, 0.8)
+      gear.scale.set(1.2, 1.2, 1.2)
       scene.add(gear)
-
       modelLoaded = true
 
-      // Fade in and signal Webflow
+      // Fit to container after Webflow layout settles
+      setTimeout(() => {
+        const width = container.clientWidth
+        const height = container.clientHeight
+        camera.aspect = width / height
+        camera.updateProjectionMatrix()
+        renderer.setSize(width, height)
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      }, 600)
+
+      // Fade in and trigger Webflow event
       requestAnimationFrame(() => {
         canvas.style.opacity = '1'
         window.dispatchEvent(new CustomEvent('webglReady'))
@@ -105,7 +116,7 @@ if (window.__gear3DInitialized) {
   )
 
   /**
-   * Camera
+   * Camera — positioned closer for Webflow div
    */
   const sizes = {
     width: container.clientWidth || window.innerWidth,
@@ -113,7 +124,7 @@ if (window.__gear3DInitialized) {
   }
 
   const camera = new THREE.PerspectiveCamera(60, sizes.width / sizes.height, 0.1, 100)
-  camera.position.set(2.2, 1.8, 2.2)
+  camera.position.set(0.8, 0.8, 1.2) // closer to fill container
   scene.add(camera)
 
   /**
@@ -123,7 +134,7 @@ if (window.__gear3DInitialized) {
   controls.enableDamping = true
   controls.enableZoom = false
   controls.enableRotate = true
-  controls.target.set(0, 0.3, 0)
+  controls.target.set(0, 0, 0)
 
   /**
    * Renderer
