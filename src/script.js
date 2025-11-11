@@ -56,8 +56,8 @@ if (!window.__gear3DInitialized) {
         })
 
         gear.rotation.x = Math.PI * 0.5
-        // ⚖️ Middle ground scale
-        gear.scale.set(0.75, 0.75, 0.75)
+        // ⚙️ Slightly smaller — fixes overflow while staying prominent
+        gear.scale.set(0.68, 0.68, 0.68)
         scene.add(gear)
 
         window.dispatchEvent(new CustomEvent('webglReady'))
@@ -74,11 +74,11 @@ if (!window.__gear3DInitialized) {
 
     const camera = new THREE.PerspectiveCamera(60, sizes.width / sizes.height, 0.1, 100)
 
-    // ⚙️ Balanced camera distance
+    // ⚙️ Camera tuned for perfect balance
     if (isLocal) {
-      camera.position.set(3.2, 3.2, 3.2)
+      camera.position.set(3.1, 3.1, 3.1)
     } else {
-      camera.position.set(1.9, 1.9, 1.9)
+      camera.position.set(2.0, 2.0, 2.0)
     }
     scene.add(camera)
 
