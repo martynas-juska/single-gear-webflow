@@ -2,29 +2,18 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-/**
- * Prevent multiple initializations
- */
 if (!window.__gear3DInitialized) {
   window.__gear3DInitialized = true
 
-  /**
-   * Get canvas from Webflow or local DOM
-   */
   const canvas = document.getElementById('webgl-canvas') || document.querySelector('canvas.webgl')
   const container = canvas?.parentElement || document.body
 
   if (!canvas) {
     console.error('❌ Canvas element with id="webgl-canvas" not found.')
   } else {
-    /**
-     * Scene
-     */
     const scene = new THREE.Scene()
 
-    /**
-     * Lights
-     */
+    // === Lights ===
     const ambient = new THREE.AmbientLight(0x557799, 0.6)
     scene.add(ambient)
 
@@ -40,9 +29,7 @@ if (!window.__gear3DInitialized) {
     fillLight.position.set(0, -1, 3)
     scene.add(fillLight)
 
-    /**
-     * Model Loader
-     */
+    // === Model Loader ===
     const loader = new GLTFLoader()
     let gear = null
 
@@ -69,48 +56,39 @@ if (!window.__gear3DInitialized) {
         })
 
         gear.rotation.x = Math.PI * 0.5
-        gear.scale.set(1, 1, 1)
+        // 👇 Smaller model — fixes overflow
+        gear.scale.set(0.6, 0.6, 0.6)
         scene.add(gear)
 
-        // Fire Webflow-ready event
         window.dispatchEvent(new CustomEvent('webglReady'))
       },
       undefined,
       (err) => console.error('❌ Model load error:', err)
     )
 
-    /**
-     * Camera
-     */
+    // === Camera ===
     const sizes = {
       width: container.clientWidth || window.innerWidth,
       height: container.clientHeight || window.innerHeight
     }
 
     const camera = new THREE.PerspectiveCamera(60, sizes.width / sizes.height, 0.1, 100)
-
-    // 👇 Adjust camera distance depending on environment
+    // 👇 Pull camera slightly back
     if (isLocal) {
-      // Local (fullscreen dev mode)
-      camera.position.set(3, 3, 3)
+      camera.position.set(3.5, 3.5, 3.5)
     } else {
-      // Webflow (small section)
-      camera.position.set(1.2, 1.2, 1.2)
+      camera.position.set(1.8, 1.8, 1.8)
     }
-
     scene.add(camera)
 
-    /**
-     * Controls
-     */
+    // === Controls ===
     const controls = new OrbitControls(camera, canvas)
     controls.enableDamping = true
     controls.enableZoom = false
+    controls.rotateSpeed = 0.6
     controls.target.set(0, 0, 0)
 
-    /**
-     * Renderer
-     */
+    // === Renderer ===
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
@@ -120,9 +98,7 @@ if (!window.__gear3DInitialized) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.outputEncoding = THREE.sRGBEncoding
 
-    /**
-     * Resize Handling
-     */
+    // === Resize ===
     const resize = () => {
       const width = container.clientWidth || window.innerWidth
       const height = container.clientHeight || window.innerHeight
@@ -132,13 +108,11 @@ if (!window.__gear3DInitialized) {
     }
     window.addEventListener('resize', resize)
 
-    /**
-     * Animation Loop
-     */
+    // === Animation ===
     const clock = new THREE.Clock()
     const animate = () => {
       const elapsed = clock.getElapsedTime()
-      if (gear) gear.rotation.z = elapsed * 0.2
+      if (gear) gear.rotation.z = elapsed * 0.15 // slower spin
 
       controls.update()
       renderer.render(scene, camera)
