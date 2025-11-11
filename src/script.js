@@ -56,8 +56,8 @@ if (!window.__gear3DInitialized) {
         })
 
         gear.rotation.x = Math.PI * 0.5
-        // 👇 Bigger but still safe for Webflow
-        gear.scale.set(0.9, 0.9, 0.9)
+        // ⚖️ Middle ground scale
+        gear.scale.set(0.75, 0.75, 0.75)
         scene.add(gear)
 
         window.dispatchEvent(new CustomEvent('webglReady'))
@@ -74,11 +74,11 @@ if (!window.__gear3DInitialized) {
 
     const camera = new THREE.PerspectiveCamera(60, sizes.width / sizes.height, 0.1, 100)
 
-    // 👇 Balanced distances: not too close, not too far
+    // ⚙️ Balanced camera distance
     if (isLocal) {
-      camera.position.set(3.3, 3.3, 3.3)
+      camera.position.set(3.2, 3.2, 3.2)
     } else {
-      camera.position.set(1.6, 1.6, 1.6)
+      camera.position.set(1.9, 1.9, 1.9)
     }
     scene.add(camera)
 
