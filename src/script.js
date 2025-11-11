@@ -56,8 +56,8 @@ if (!window.__gear3DInitialized) {
         })
 
         gear.rotation.x = Math.PI * 0.5
-        // 👇 Smaller model — fixes overflow
-        gear.scale.set(0.6, 0.6, 0.6)
+        // 👇 Bigger but still safe for Webflow
+        gear.scale.set(0.9, 0.9, 0.9)
         scene.add(gear)
 
         window.dispatchEvent(new CustomEvent('webglReady'))
@@ -73,11 +73,12 @@ if (!window.__gear3DInitialized) {
     }
 
     const camera = new THREE.PerspectiveCamera(60, sizes.width / sizes.height, 0.1, 100)
-    // 👇 Pull camera slightly back
+
+    // 👇 Balanced distances: not too close, not too far
     if (isLocal) {
-      camera.position.set(3.5, 3.5, 3.5)
+      camera.position.set(3.3, 3.3, 3.3)
     } else {
-      camera.position.set(1.8, 1.8, 1.8)
+      camera.position.set(1.6, 1.6, 1.6)
     }
     scene.add(camera)
 
@@ -112,7 +113,7 @@ if (!window.__gear3DInitialized) {
     const clock = new THREE.Clock()
     const animate = () => {
       const elapsed = clock.getElapsedTime()
-      if (gear) gear.rotation.z = elapsed * 0.15 // slower spin
+      if (gear) gear.rotation.z = elapsed * 0.15
 
       controls.update()
       renderer.render(scene, camera)
