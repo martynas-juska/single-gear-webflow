@@ -55,9 +55,10 @@ if (!window.__gear3DInitialized) {
           }
         })
 
+        // ✅ Center and scale balanced for Webflow container
+        gear.position.set(0, -0.2, 0) // pushes slightly downward (visually centers)
         gear.rotation.x = Math.PI * 0.5
-        // ⚙️ Slightly smaller — fixes overflow while staying prominent
-        gear.scale.set(0.68, 0.68, 0.68)
+        gear.scale.set(0.75, 0.75, 0.75)
         scene.add(gear)
 
         window.dispatchEvent(new CustomEvent('webglReady'))
@@ -73,12 +74,10 @@ if (!window.__gear3DInitialized) {
     }
 
     const camera = new THREE.PerspectiveCamera(60, sizes.width / sizes.height, 0.1, 100)
-
-    // ⚙️ Camera tuned for perfect balance
     if (isLocal) {
-      camera.position.set(3.1, 3.1, 3.1)
+      camera.position.set(3.2, 2.8, 3.2)
     } else {
-      camera.position.set(2.0, 2.0, 2.0)
+      camera.position.set(1.9, 1.7, 1.9)
     }
     scene.add(camera)
 
@@ -86,8 +85,8 @@ if (!window.__gear3DInitialized) {
     const controls = new OrbitControls(camera, canvas)
     controls.enableDamping = true
     controls.enableZoom = false
-    controls.rotateSpeed = 0.6
-    controls.target.set(0, 0, 0)
+    controls.target.set(0, 0, 0) // 👈 centers orbit pivot
+    controls.update()
 
     // === Renderer ===
     const renderer = new THREE.WebGLRenderer({
